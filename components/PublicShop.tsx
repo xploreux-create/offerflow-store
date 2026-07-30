@@ -55,7 +55,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
       <div className="page-glow" aria-hidden="true" />
       <header className="public-store-header">
         <div className="public-store-nav">
-          <a className="public-store-brand" href="/store"><span className="brand-mark">O</span>OfferFlow</a>
+          <a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a>
           <nav aria-label="Store navigation">
             <a href="#shop">Shop</a>
             <a href="#categories">Categories</a>
@@ -92,6 +92,10 @@ export default function PublicShop({ products }: { products: Product[] }) {
                   <span className="cover-badge">{product.category}</span>
                   {product.coverUrl ? <img className="customer-cover-image" src={product.coverUrl} alt={`${product.title} cover`} /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
                   <small>{(product.pdfSize / 1024 / 1024).toFixed(1)} MB digital ebook</small>
+                  <div className="store-cover-glance" aria-hidden="true">
+                    <span>QUICK GLANCE</span><strong>{product.title}</strong>
+                    <p>{product.description}</p><b>£{product.price.toFixed(2)}</b>
+                  </div>
                 </div>
                 <div className="store-card-content">
                   <p>INSTANT DIGITAL DOWNLOAD</p>
@@ -120,7 +124,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
         </div>
         <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
-      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><span className="brand-mark">O</span>OfferFlow</a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
+      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );
 }

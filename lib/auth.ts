@@ -3,12 +3,12 @@ import crypto from "crypto";
 
 export function adminToken() {
   const password = process.env.ADMIN_PASSWORD ?? "";
-  return crypto.createHash("sha256").update(`offerflow:${password}`).digest("hex");
+  return crypto.createHash("sha256").update(`vendlixa:${password}`).digest("hex");
 }
 
 export async function isAdmin() {
   const jar = await cookies();
-  const supplied = jar.get("offerflow_admin")?.value ?? "";
+  const supplied = jar.get("vendlixa_admin")?.value ?? "";
   const expected = adminToken();
   return Boolean(process.env.ADMIN_PASSWORD && supplied.length === expected.length &&
     crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(expected)));

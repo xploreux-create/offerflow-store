@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "OfferFlow | Practical digital toolkits",
+  title: "Vendlixa | Practical digital toolkits",
   description: "Practical ebooks, templates and business toolkits designed to help you take action."
 };
 

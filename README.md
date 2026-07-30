@@ -1,4 +1,4 @@
-# OfferFlow Store
+# Vendlixa Store
 
 A production digital-product store for Vercel, Supabase and Stripe.
 
@@ -17,7 +17,7 @@ A production digital-product store for Vercel, Supabase and Stripe.
 - Real order history with purchased items
 - Secure sign-out and production security headers
 - Responsive mobile and desktop interface
-- Original OfferFlow purple, lime and coral dashboard design
+- Original Vendlixa purple, lime and coral dashboard design
 - Protected seller dashboard at `/` and `/admin`
 - Public customer storefront at `/store`
 - Campaign drafts with product, country, age, budget, duration and ad-copy controls
@@ -28,7 +28,7 @@ A production digital-product store for Vercel, Supabase and Stripe.
 Open your Supabase project, choose **SQL Editor**, paste everything from
 `supabase/schema.sql`, and select **Run**.
 
-If you already ran an earlier OfferFlow schema, run
+If you already ran an earlier store schema, run
 `supabase/production-upgrade.sql` instead. It adds the production archive
 status and database indexes without deleting existing products or orders.
 The latest upgrade also creates the `campaigns` table.
@@ -62,7 +62,7 @@ Add these Environment Variables in Vercel:
 Never put secret keys into GitHub files.
 
 The Meta variables are only required when you select **Send to Meta**. Campaign
-planning and saving works without them. OfferFlow always creates Meta campaigns,
+planning and saving works without them. Vendlixa always creates Meta campaigns,
 ad sets and ads as **paused**; review the tracking, audience and creative in Meta
 Ads Manager before activating.
 

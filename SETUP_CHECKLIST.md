@@ -1,4 +1,4 @@
-# OfferFlow Launch Checklist
+# Vendlixa Launch Checklist
 
 Complete these steps in order.
 
@@ -16,7 +16,7 @@ Complete these steps in order.
 1. Open your Supabase project.
 2. Select **SQL Editor**.
 3. Select **New query**.
-4. Because OfferFlow is already connected, open
+4. Because Vendlixa is already connected, open
    `supabase/production-upgrade.sql` from the extracted folder.
 5. Copy all its contents into the Supabase query box.
 6. Select **Run**.

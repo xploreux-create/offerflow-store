@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { isAdmin } from "@/lib/auth";
-import OfferFlowDashboard from "@/components/OfferFlowDashboard";
+import VendlixaDashboard from "@/components/VendlixaDashboard";
 
 export default async function Home() {
   if (!await isAdmin()) redirect("/admin/login");
-  return <OfferFlowDashboard />;
+  return <VendlixaDashboard />;
 }
