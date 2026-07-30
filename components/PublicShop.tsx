@@ -60,7 +60,6 @@ export default function PublicShop({ products }: { products: Product[] }) {
           <nav aria-label="Store navigation">
             <a href="#shop">Shop</a>
             <a href="#categories">Categories</a>
-            <a href="#benefits">How it works</a>
           </nav>
           <a className="public-basket-link" href="#basket" aria-label={`${cart.length} items in basket`}>Basket <span>{cart.length}</span></a>
         </div>
@@ -90,11 +89,8 @@ export default function PublicShop({ products }: { products: Product[] }) {
             {visibleProducts.map((product) => (
               <article className="store-card" key={product.id}
                 onMouseEnter={() => setPreviewProduct(product)}
-                onMouseLeave={() => setPreviewProduct(null)}
                 onFocus={() => setPreviewProduct(product)}
-                onBlur={(event) => {
-                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPreviewProduct(null);
-                }}>
+              >
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
                   {product.coverUrl ? <img className="customer-cover-image" src={product.coverUrl} alt={`${product.title} cover`} /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
@@ -127,8 +123,9 @@ export default function PublicShop({ products }: { products: Product[] }) {
         </div>
         <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
-      {previewProduct && <div className="store-hover-backdrop" aria-hidden="true">
-        <article className="store-hover-preview">
+      {previewProduct && <div className="store-hover-backdrop" role="dialog" aria-modal="true" aria-label={`${previewProduct.title} quick preview`} onMouseDown={() => setPreviewProduct(null)}>
+        <article className="store-hover-preview" onMouseDown={(event) => event.stopPropagation()}>
+          <button className="store-hover-close" onClick={() => setPreviewProduct(null)} aria-label="Close product preview">×</button>
           <div className="store-hover-preview-cover">
             {previewProduct.coverUrl ? <img src={previewProduct.coverUrl} alt="" /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
           </div>
@@ -136,7 +133,9 @@ export default function PublicShop({ products }: { products: Product[] }) {
             <span>{previewProduct.category}</span>
             <h2>{previewProduct.title}</h2>
             <p>{previewProduct.description}</p>
-            <div><strong>£{previewProduct.price.toFixed(2)}</strong><small>Instant digital download</small></div>
+            <div className="store-hover-price"><span><strong>£{previewProduct.price.toFixed(2)}</strong><small>Instant digital download</small></span>
+              <button onClick={() => { addToBasket(previewProduct.id); setPreviewProduct(null); }}>{cart.includes(previewProduct.id) ? "Already in basket ✓" : "Add to basket"}</button>
+            </div>
           </div>
         </article>
       </div>}
