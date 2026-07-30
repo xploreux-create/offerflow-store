@@ -51,22 +51,21 @@ export default function PublicShop({ products }: { products: Product[] }) {
   };
 
   return (
-    <main>
+    <main className="public-store-main">
       <div className="page-glow" aria-hidden="true" />
-      <header className="app-sidebar">
-        <a className="brand" href="/store"><span className="brand-mark">O</span>OfferFlow</a>
-        <nav aria-label="Shop navigation">
-          <a className="public-nav-link active" href="#shop"><span>▣</span>Shop</a>
-          <a className="public-nav-link" href="#benefits"><span>✓</span>How it works</a>
-          <a className="public-nav-link" href="#benefits"><span>?</span>Purchase help</a>
-        </nav>
-        <div className="sidebar-account">
-          <span className="avatar">OF</span>
-          <span><strong>Digital Skills Library</strong><small>Instant PDF access</small></span>
+      <header className="public-store-header">
+        <div className="public-store-nav">
+          <a className="public-store-brand" href="/store"><span className="brand-mark">O</span>OfferFlow</a>
+          <nav aria-label="Store navigation">
+            <a href="#shop">Shop</a>
+            <a href="#categories">Categories</a>
+            <a href="#benefits">How it works</a>
+          </nav>
+          <a className="public-basket-link" href="#basket" aria-label={`${cart.length} items in basket`}>Basket <span>{cart.length}</span></a>
         </div>
       </header>
 
-      <section className="store-section app-view" id="shop" aria-labelledby="store-title">
+      <section className="store-section public-store-content" id="shop" aria-labelledby="store-title">
         <div className="store-preview-bar">
           <div><span className="preview-dot" />Secure digital-product store</div>
           <span>{cart.length} {cart.length === 1 ? "item" : "items"} in basket</span>
@@ -80,7 +79,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
           <div className="store-basket-summary"><span>YOUR BASKET</span><strong>{cart.length}</strong><small>{cart.length === 1 ? "item" : "items"}</small></div>
         </div>
 
-        <div className="public-shop-filters">
+        <div className="public-shop-filters" id="categories">
           <label><span className="sr-only">Search products</span><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search ebooks and toolkits…" /></label>
           <label><span className="sr-only">Choose category</span><select value={category} onChange={(event) => setCategory(event.target.value)}>{categories.map((item) => <option key={item}>{item}</option>)}</select></label>
         </div>
@@ -109,7 +108,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
             {!visibleProducts.length && <div className="empty-state">No published products match this search yet.</div>}
           </div>
 
-          <aside className="basket-panel">
+          <aside className="basket-panel" id="basket">
             <div className="basket-heading"><div><p className="eyebrow">YOUR ORDER</p><h3>Basket</h3></div><span>{cart.length}</span></div>
             {!basketProducts.length ? <div className="empty-basket"><div>▣</div><strong>Your basket is empty</strong><p>Add an ebook to prepare your secure checkout.</p></div> :
               <div className="basket-items">{basketProducts.map((product) => <div className="basket-item" key={product.id}><span>PDF</span><div><strong>{product.title}</strong><small>Digital ebook</small></div><div><b>£{product.price.toFixed(2)}</b><button onClick={() => setCart((current) => current.filter((id) => id !== product.id))}>Remove</button></div></div>)}</div>}
@@ -121,6 +120,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
         </div>
         <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
+      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><span className="brand-mark">O</span>OfferFlow</a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );
 }

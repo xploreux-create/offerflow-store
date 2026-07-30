@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { browserDb } from "@/lib/supabase";
 
-type Section = "overview" | "products" | "orders" | "store" | "settings";
+type Section = "overview" | "products" | "campaigns" | "orders" | "store" | "settings";
 type Product = {
   id: string;
   title: string;
@@ -27,10 +27,19 @@ type Order = {
   created_at: string;
   order_items: OrderItem[];
 };
+type Campaign = {
+  id: string; name: string; product_id: string; country: string; age_min: number; age_max: number;
+  daily_budget_pence: number; duration_days: number; primary_text: string; headline: string;
+  interest_ids: string[]; status: "draft" | "ready" | "paused" | "active" | "completed";
+  meta_campaign_id: string | null; created_at: string;
+  products: { id: string; title: string; status: string; cover_path: string | null } | null;
+};
+type MetaReadiness = { connected: boolean; required: Record<string, boolean>; missing: string[] };
 
 const nav: Array<{ id: Section; icon: string; label: string }> = [
   { id: "overview", icon: "⌂", label: "Overview" },
   { id: "products", icon: "□", label: "Products" },
+  { id: "campaigns", icon: "◉", label: "Campaigns" },
   { id: "orders", icon: "◎", label: "Orders" },
   { id: "store", icon: "▣", label: "Store" },
   { id: "settings", icon: "⚙", label: "Settings" },
@@ -50,6 +59,8 @@ export default function OfferFlowDashboard() {
   const [section, setSection] = useState<Section>("overview");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [metaReadiness, setMetaReadiness] = useState<MetaReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [productModal, setProductModal] = useState(false);
@@ -58,25 +69,33 @@ export default function OfferFlowDashboard() {
   const [formError, setFormError] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [campaignModal, setCampaignModal] = useState(false);
+  const [campaignBusy, setCampaignBusy] = useState("");
+  const [campaignError, setCampaignError] = useState("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
     setLoadError("");
     try {
-      const [productsResponse, ordersResponse] = await Promise.all([
+      const [productsResponse, ordersResponse, campaignsResponse] = await Promise.all([
         fetch("/api/admin/products", { cache: "no-store" }),
         fetch("/api/admin/orders", { cache: "no-store" }),
+        fetch("/api/admin/campaigns", { cache: "no-store" }),
       ]);
-      if (productsResponse.status === 401 || ordersResponse.status === 401) {
+      if (productsResponse.status === 401 || ordersResponse.status === 401 || campaignsResponse.status === 401) {
         window.location.assign("/admin/login");
         return;
       }
       const productData = await productsResponse.json();
       const orderData = await ordersResponse.json();
+      const campaignData = await campaignsResponse.json();
       if (!productsResponse.ok) throw new Error(productData.error || "Products could not be loaded");
       if (!ordersResponse.ok) throw new Error(orderData.error || "Orders could not be loaded");
+      if (!campaignsResponse.ok) throw new Error(campaignData.error || "Campaigns could not be loaded. Run the latest Supabase production upgrade.");
       setProducts(productData.products ?? []);
       setOrders(orderData.orders ?? []);
+      setCampaigns(campaignData.campaigns ?? []);
+      setMetaReadiness(campaignData.meta ?? null);
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Your store data could not be loaded");
     } finally {
@@ -112,11 +131,12 @@ export default function OfferFlowDashboard() {
 
   async function addProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setUploading(true);
     setUploadProgress(5);
     setFormError("");
     try {
-      const form = new FormData(event.currentTarget);
+      const form = new FormData(formElement);
       const pdf = form.get("pdf") as File;
       const cover = form.get("cover") as File;
       if (!pdf?.size || pdf.type !== "application/pdf") throw new Error("Choose a valid PDF file");
@@ -146,7 +166,7 @@ export default function OfferFlowDashboard() {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "The product could not be saved");
       setUploadProgress(100);
-      event.currentTarget.reset();
+      formElement.reset();
       setProductModal(false);
       await loadData();
     } catch (error) {
@@ -179,6 +199,53 @@ export default function OfferFlowDashboard() {
   async function logout() {
     await fetch("/api/admin/logout", { method: "POST" });
     window.location.assign("/admin/login");
+  }
+
+  async function addCampaign(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+    setCampaignBusy("create");
+    setCampaignError("");
+    try {
+      const form = new FormData(formElement);
+      const response = await fetch("/api/admin/campaigns", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify(Object.fromEntries(form.entries())),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "The campaign could not be saved");
+      formElement.reset();
+      setCampaignModal(false);
+      await loadData();
+      setSection("campaigns");
+    } catch (error) {
+      setCampaignError(error instanceof Error ? error.message : "Campaign creation failed");
+    } finally { setCampaignBusy(""); }
+  }
+
+  async function launchCampaign(campaign: Campaign) {
+    if (!window.confirm(`Send “${campaign.name}” to Meta as PAUSED? It will not spend until activated in Meta Ads Manager.`)) return;
+    setCampaignBusy(campaign.id);
+    setCampaignError("");
+    try {
+      const response = await fetch(`/api/admin/campaigns/${campaign.id}/launch`, { method: "POST" });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Meta launch failed");
+      await loadData();
+      window.alert("Campaign created in Meta as PAUSED. Review it in Meta Ads Manager before activation.");
+    } catch (error) {
+      setCampaignError(error instanceof Error ? error.message : "Meta launch failed");
+    } finally { setCampaignBusy(""); }
+  }
+
+  async function deleteCampaign(campaign: Campaign) {
+    if (!window.confirm(`Delete campaign “${campaign.name}”?`)) return;
+    setCampaignBusy(campaign.id);
+    const response = await fetch(`/api/admin/campaigns?id=${encodeURIComponent(campaign.id)}`, { method: "DELETE" });
+    const result = await response.json();
+    setCampaignBusy("");
+    if (!response.ok) return setCampaignError(result.error || "Campaign could not be deleted");
+    await loadData();
   }
 
   return (
@@ -247,6 +314,47 @@ export default function OfferFlowDashboard() {
         </div>
       </section>}
 
+      {!loadError && section === "campaigns" && <section className="workspace-section app-view">
+        <div className="section-heading compact">
+          <div><p className="eyebrow">META SALES CAMPAIGNS</p><h2>Turn a published ebook into a targeted campaign.</h2></div>
+          <p>Plan the audience, budget and ad copy here. Meta campaigns are created paused so you can review them before any spend.</p>
+        </div>
+        <div className="campaign-status-strip">
+          <div className={metaReadiness?.connected ? "connected" : "setup"}>
+            <span>{metaReadiness?.connected ? "✓" : "!"}</span>
+            <div><strong>{metaReadiness?.connected ? "Meta launch connection ready" : "Meta connection needs setup"}</strong>
+              <small>{metaReadiness?.connected ? "Credentials are stored securely on the server." : `Missing: ${metaReadiness?.missing?.join(", ") || "connection variables"}`}</small></div>
+          </div>
+          <button onClick={() => { setCampaignError(""); setCampaignModal(true); }} disabled={!liveProducts.length}>+ New campaign</button>
+        </div>
+        {campaignError && <p className="campaign-alert">{campaignError}</p>}
+        {!liveProducts.length && <div className="library-panel empty-state"><strong>Publish a product first</strong><p>A campaign must lead to a product customers can buy.</p><button onClick={() => setSection("products")}>Manage products</button></div>}
+        {!!liveProducts.length && !campaigns.length && <div className="library-panel empty-state"><strong>No campaigns yet</strong><p>Create a campaign to define its product, audience, budget and sales message.</p><button onClick={() => setCampaignModal(true)}>Create first campaign</button></div>}
+        {!!campaigns.length && <div className="campaign-grid">
+          {campaigns.map((campaign) => <article className="campaign-card" key={campaign.id}>
+            <div className="campaign-card-top"><i className={campaign.status}>{campaign.status}</i><small>{new Date(campaign.created_at).toLocaleDateString("en-GB")}</small></div>
+            <p>META · SALES</p><h3>{campaign.name}</h3>
+            <strong className="campaign-product">{campaign.products?.title || "Product unavailable"}</strong>
+            <div className="campaign-metrics">
+              <span><small>Daily budget</small><b>{money(campaign.daily_budget_pence)}</b></span>
+              <span><small>Total limit</small><b>{money(campaign.daily_budget_pence * campaign.duration_days)}</b></span>
+              <span><small>Audience</small><b>{campaign.country} · {campaign.age_min}–{campaign.age_max}</b></span>
+              <span><small>Duration</small><b>{campaign.duration_days} days</b></span>
+            </div>
+            <div className="campaign-copy"><small>AD PREVIEW</small><b>{campaign.headline}</b><p>{campaign.primary_text}</p></div>
+            <div className="campaign-actions">
+              {!campaign.meta_campaign_id && <button onClick={() => launchCampaign(campaign)} disabled={campaignBusy === campaign.id}>{campaignBusy === campaign.id ? "Sending…" : "Send to Meta (paused)"}</button>}
+              {campaign.meta_campaign_id && <a href="https://adsmanager.facebook.com/" target="_blank" rel="noreferrer">Review in Ads Manager ↗</a>}
+              <button className="danger" onClick={() => deleteCampaign(campaign)} disabled={campaignBusy === campaign.id || campaign.status === "active"}>Delete</button>
+            </div>
+          </article>)}
+        </div>}
+        <div className="campaign-safety">
+          <strong>Safe launch workflow</strong>
+          <span>1. Create draft</span><span>2. Send paused</span><span>3. Review tracking and creative in Meta</span><span>4. Activate in Ads Manager</span>
+        </div>
+      </section>}
+
       {!loadError && section === "orders" && <section className="workspace-section app-view">
         <div className="section-heading compact"><div><p className="eyebrow">ORDER MANAGEMENT</p><h2>Payments and purchased products.</h2></div><p>Orders are created automatically after Stripe confirms a completed checkout.</p></div>
         <div className="library-panel">
@@ -294,6 +402,29 @@ export default function OfferFlowDashboard() {
           {uploadProgress > 0 && <div className="progress-track"><span style={{ width: `${uploadProgress}%` }} /></div>}
           {formError && <p className="upload-error">{formError}</p>}
           <button className="button primary" disabled={uploading}>{uploading ? `Uploading… ${uploadProgress}%` : "Save product"}</button>
+        </form>
+      </div>}
+
+      {campaignModal && <div className="modal-backdrop" onMouseDown={() => !campaignBusy && setCampaignModal(false)}>
+        <form className="modal campaign-modal" onSubmit={addCampaign} onMouseDown={(event) => event.stopPropagation()}>
+          <button type="button" className="modal-close" onClick={() => setCampaignModal(false)} disabled={Boolean(campaignBusy)}>×</button>
+          <p className="eyebrow">NEW SALES CAMPAIGN</p><h2>Plan your Meta campaign</h2><p>The total budget shown is a planning limit. The Meta campaign will be created paused.</p>
+          <label>Campaign name<input name="name" required maxLength={120} autoFocus placeholder="UGC Toolkit launch" /></label>
+          <label>Published product<select name="productId" required defaultValue=""><option value="" disabled>Choose a product</option>{liveProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>)}</select></label>
+          <div className="upload-field-pair">
+            <label>Country code<input name="country" defaultValue="GB" required pattern="[A-Za-z]{2}" maxLength={2} /></label>
+            <label>Duration (days)<input name="durationDays" type="number" min="1" max="90" defaultValue="7" required /></label>
+          </div>
+          <div className="campaign-form-grid">
+            <label>Minimum age<input name="ageMin" type="number" min="18" max="65" defaultValue="18" required /></label>
+            <label>Maximum age<input name="ageMax" type="number" min="18" max="65" defaultValue="45" required /></label>
+            <label>Daily budget (£)<input name="dailyBudget" type="number" min="1" max="10000" step=".01" defaultValue="10" required /></label>
+          </div>
+          <label>Primary ad text<textarea name="primaryText" rows={4} maxLength={500} required placeholder="Explain the result your ebook helps the customer achieve." /></label>
+          <label>Headline<input name="headline" maxLength={100} required placeholder="Start landing your first UGC brand deal" /></label>
+          <label>Meta interest IDs <span className="optional">(optional, comma separated)</span><input name="interestIds" inputMode="numeric" placeholder="6003139266461, 6003384248805" /><span className="field-help">Leave blank for a broad country-and-age audience. Use numeric IDs from Meta Audience tools only.</span></label>
+          {campaignError && <p className="upload-error">{campaignError}</p>}
+          <button className="button primary" disabled={Boolean(campaignBusy)}>{campaignBusy ? "Saving…" : "Save campaign draft"}</button>
         </form>
       </div>}
     </main>

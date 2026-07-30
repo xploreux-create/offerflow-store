@@ -20,6 +20,8 @@ A production digital-product store for Vercel, Supabase and Stripe.
 - Original OfferFlow purple, lime and coral dashboard design
 - Protected seller dashboard at `/` and `/admin`
 - Public customer storefront at `/store`
+- Campaign drafts with product, country, age, budget, duration and ad-copy controls
+- Safe Meta Marketing API launch in paused status for review before spending
 
 ## 1. Set up Supabase
 
@@ -29,6 +31,7 @@ Open your Supabase project, choose **SQL Editor**, paste everything from
 If you already ran an earlier OfferFlow schema, run
 `supabase/production-upgrade.sql` instead. It adds the production archive
 status and database indexes without deleting existing products or orders.
+The latest upgrade also creates the `campaigns` table.
 
 In **Project Settings → API**, copy:
 
@@ -51,8 +54,17 @@ Add these Environment Variables in Vercel:
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase secret key |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `ADMIN_PASSWORD` | A strong password you create for `/admin` |
+| `META_ACCESS_TOKEN` | Meta system-user token with ads-management access |
+| `META_AD_ACCOUNT_ID` | Meta ad account number (with or without `act_`) |
+| `META_PIXEL_ID` | Pixel used to optimize for purchases |
+| `META_PAGE_ID` | Facebook Page identity for the ad |
 
 Never put secret keys into GitHub files.
+
+The Meta variables are only required when you select **Send to Meta**. Campaign
+planning and saving works without them. OfferFlow always creates Meta campaigns,
+ad sets and ads as **paused**; review the tracking, audience and creative in Meta
+Ads Manager before activating.
 
 ## 3. Configure Stripe
 
