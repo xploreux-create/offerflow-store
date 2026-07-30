@@ -13,6 +13,9 @@ A production digital-product store for Vercel, Supabase and Stripe.
 - Private paid-download links that expire after one hour
 - Stripe webhook order records
 - Responsive mobile and desktop interface
+- Original OfferFlow purple, lime and coral dashboard design
+- Protected seller dashboard at `/` and `/admin`
+- Public customer storefront at `/store`
 
 ## 1. Set up Supabase
 
@@ -58,7 +61,7 @@ Enable customer email receipts in Stripe if you want Stripe to email receipts.
 
 Visit `https://YOUR-DOMAIN/admin`, enter your `ADMIN_PASSWORD`, upload the PDF
 and cover image, choose **Publish to store**, and select **Upload product**.
-The product will appear on the storefront immediately.
+The product will appear at `https://YOUR-DOMAIN/store` immediately.
 
 ## Local development
 

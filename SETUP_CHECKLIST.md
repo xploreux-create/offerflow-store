@@ -48,7 +48,7 @@ Complete these steps in order.
 2. Sign in with the password you set in `ADMIN_PASSWORD`.
 3. Upload one PDF and one cover.
 4. Choose **Publish to store**.
-5. Confirm that its cover appears on the shop.
+5. Open `/store` and confirm that its cover appears on the public shop.
 6. Add it to the basket.
 7. Complete a Stripe test payment using card number `4242 4242 4242 4242`,
    any future expiry date and any three-digit CVC.
