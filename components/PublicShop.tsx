@@ -18,6 +18,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
   const [category, setCategory] = useState("All");
   const [checkoutState, setCheckoutState] = useState<"idle" | "loading">("idle");
   const [checkoutError, setCheckoutError] = useState("");
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
 
   const categories = ["All", ...Array.from(new Set(products.map((product) => product.category))).sort()];
   const visibleProducts = useMemo(() => products.filter((product) =>
@@ -87,15 +88,17 @@ export default function PublicShop({ products }: { products: Product[] }) {
         <div className="store-layout">
           <div className="store-products">
             {visibleProducts.map((product) => (
-              <article className="store-card" key={product.id}>
+              <article className="store-card" key={product.id}
+                onMouseEnter={() => setPreviewProduct(product)}
+                onMouseLeave={() => setPreviewProduct(null)}
+                onFocus={() => setPreviewProduct(product)}
+                onBlur={(event) => {
+                  if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPreviewProduct(null);
+                }}>
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
                   {product.coverUrl ? <img className="customer-cover-image" src={product.coverUrl} alt={`${product.title} cover`} /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
                   <small>{(product.pdfSize / 1024 / 1024).toFixed(1)} MB digital ebook</small>
-                  <div className="store-cover-glance" aria-hidden="true">
-                    <span>QUICK GLANCE</span><strong>{product.title}</strong>
-                    <p>{product.description}</p><b>£{product.price.toFixed(2)}</b>
-                  </div>
                 </div>
                 <div className="store-card-content">
                   <p>INSTANT DIGITAL DOWNLOAD</p>
@@ -124,6 +127,19 @@ export default function PublicShop({ products }: { products: Product[] }) {
         </div>
         <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
+      {previewProduct && <div className="store-hover-backdrop" aria-hidden="true">
+        <article className="store-hover-preview">
+          <div className="store-hover-preview-cover">
+            {previewProduct.coverUrl ? <img src={previewProduct.coverUrl} alt="" /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
+          </div>
+          <div className="store-hover-preview-copy">
+            <span>{previewProduct.category}</span>
+            <h2>{previewProduct.title}</h2>
+            <p>{previewProduct.description}</p>
+            <div><strong>£{previewProduct.price.toFixed(2)}</strong><small>Instant digital download</small></div>
+          </div>
+        </article>
+      </div>}
       <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );
