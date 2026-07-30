@@ -5,8 +5,9 @@ import { stripeClient } from "@/lib/stripe";
 export async function POST(request: Request) {
   try {
     const { productIds } = await request.json();
-    if (!Array.isArray(productIds) || !productIds.length || productIds.length > 20) return NextResponse.json({ error: "Your basket is empty" }, { status: 400 });
+    if (!Array.isArray(productIds) || !productIds.length) return NextResponse.json({ error: "Your basket is empty" }, { status: 400 });
     const ids = [...new Set(productIds.filter((id): id is string => typeof id === "string"))];
+    if (ids.length > 10) return NextResponse.json({ error: "You can purchase up to 10 products in one order" }, { status: 400 });
     const { data: products, error } = await adminDb().from("products").select("id,title,price_pence").in("id", ids).eq("status", "published");
     if (error || !products || products.length !== ids.length) return NextResponse.json({ error: "One or more products are unavailable" }, { status: 400 });
     const site = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;

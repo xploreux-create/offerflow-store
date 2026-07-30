@@ -16,7 +16,8 @@ Complete these steps in order.
 1. Open your Supabase project.
 2. Select **SQL Editor**.
 3. Select **New query**.
-4. Open `supabase/schema.sql` from the extracted folder.
+4. Because OfferFlow is already connected, open
+   `supabase/production-upgrade.sql` from the extracted folder.
 5. Copy all its contents into the Supabase query box.
 6. Select **Run**.
 7. Open **Project Settings → API** and keep this page open.

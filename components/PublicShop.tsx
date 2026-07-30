@@ -58,7 +58,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
         <nav aria-label="Shop navigation">
           <a className="public-nav-link active" href="#shop"><span>▣</span>Shop</a>
           <a className="public-nav-link" href="#benefits"><span>✓</span>How it works</a>
-          <a className="public-nav-link" href="mailto:support@example.com"><span>?</span>Support</a>
+          <a className="public-nav-link" href="#benefits"><span>?</span>Purchase help</a>
         </nav>
         <div className="sidebar-account">
           <span className="avatar">OF</span>

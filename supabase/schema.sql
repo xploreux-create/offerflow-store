@@ -11,7 +11,7 @@ create table if not exists public.products (
   pdf_path text not null,
   pdf_name text not null,
   pdf_size bigint not null default 0,
-  status text not null default 'draft' check (status in ('draft','published')),
+  status text not null default 'draft' check (status in ('draft','published','archived')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

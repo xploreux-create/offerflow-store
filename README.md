@@ -10,8 +10,12 @@ A production digital-product store for Vercel, Supabase and Stripe.
 - PDF uploads up to 200 MB directly to Supabase (avoids Vercel 413 errors)
 - Cover-image uploads and storefront thumbnails
 - Draft, publish and unpublish controls
+- Safe archive controls that preserve sold-order records
 - Private paid-download links that expire after one hour
 - Stripe webhook order records
+- Live dashboard figures calculated from real orders
+- Real order history with purchased items
+- Secure sign-out and production security headers
 - Responsive mobile and desktop interface
 - Original OfferFlow purple, lime and coral dashboard design
 - Protected seller dashboard at `/` and `/admin`
@@ -22,11 +26,15 @@ A production digital-product store for Vercel, Supabase and Stripe.
 Open your Supabase project, choose **SQL Editor**, paste everything from
 `supabase/schema.sql`, and select **Run**.
 
+If you already ran an earlier OfferFlow schema, run
+`supabase/production-upgrade.sql` instead. It adds the production archive
+status and database indexes without deleting existing products or orders.
+
 In **Project Settings → API**, copy:
 
 - Project URL
-- anon public key
-- service_role key (keep this secret)
+- Publishable key
+- Secret key (keep this secret)
 
 ## 2. Deploy through GitHub and Vercel
 
@@ -39,8 +47,8 @@ Add these Environment Variables in Vercel:
 |---|---|
 | `NEXT_PUBLIC_SITE_URL` | Your final Vercel URL, such as `https://offerflow-store.vercel.app` |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon public key |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service_role key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase publishable key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase secret key |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
 | `ADMIN_PASSWORD` | A strong password you create for `/admin` |
 
@@ -56,6 +64,12 @@ Subscribe to `checkout.session.completed`. Copy its signing secret into Vercel
 as `STRIPE_WEBHOOK_SECRET`, then redeploy.
 
 Enable customer email receipts in Stripe if you want Stripe to email receipts.
+
+## Production routes
+
+- `/admin` — password-protected seller dashboard
+- `/store` — public customer storefront
+- `/success` — verified paid-download delivery
 
 ## 4. Add the first product
 
