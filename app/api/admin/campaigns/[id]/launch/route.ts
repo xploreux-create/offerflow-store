@@ -55,7 +55,7 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
     const resolvedIds = campaign.interest_ids?.length ? campaign.interest_ids : await resolveInterestIds(recommendedNames);
     const interests = resolvedIds.map((interestId: string) => ({ id: interestId }));
     const targeting: Record<string, unknown> = {
-      geo_locations: { countries: [campaign.country] },
+      geo_locations: { countries: campaign.target_countries?.length ? campaign.target_countries : [campaign.country] },
       age_min: campaign.age_min, age_max: campaign.age_max,
     };
     if (interests.length) targeting.interests = interests;

@@ -24,6 +24,7 @@ export async function POST(request: Request) {
     const { data, error } = await db.from("campaigns").insert({
       name: input.name, product_id: input.productId, objective: "OUTCOME_SALES",
       country: input.country, age_min: input.ageMin, age_max: input.ageMax,
+      target_countries: [input.country],
       daily_budget_pence: input.dailyBudgetPence, duration_days: input.durationDays,
       primary_text: input.primaryText, headline: input.headline,
       interest_ids: input.interestIds, status: "draft",

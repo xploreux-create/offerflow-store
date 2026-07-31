@@ -40,6 +40,7 @@ create table if not exists public.campaigns (
   name text not null check (char_length(name) between 1 and 120),
   objective text not null default 'OUTCOME_SALES',
   country text not null default 'GB' check (country ~ '^[A-Z]{2}$'),
+  target_countries text[] not null default array['GB']::text[],
   age_min integer not null default 18 check (age_min between 18 and 65),
   age_max integer not null default 65 check (age_max between 18 and 65 and age_max >= age_min),
   daily_budget_pence integer not null check (daily_budget_pence between 100 and 1000000),

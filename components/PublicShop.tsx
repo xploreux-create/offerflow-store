@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Product = {
   id: string;
@@ -18,6 +18,21 @@ export default function PublicShop({ products }: { products: Product[] }) {
   const [category, setCategory] = useState("All");
   const [checkoutState, setCheckoutState] = useState<"idle" | "loading">("idle");
   const [checkoutError, setCheckoutError] = useState("");
+  const [coverPreview, setCoverPreview] = useState<Product | null>(null);
+
+  useEffect(() => {
+    if (!coverPreview) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCoverPreview(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [coverPreview]);
 
   const categories = ["All", ...Array.from(new Set(products.map((product) => product.category))).sort()];
   const visibleProducts = useMemo(() => products.filter((product) =>
@@ -89,14 +104,17 @@ export default function PublicShop({ products }: { products: Product[] }) {
               <article className="store-card" key={product.id}>
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
-                  {product.coverUrl ? <img className="customer-cover-image" src={product.coverUrl} alt={`${product.title} cover`} /> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
+                  {product.coverUrl ? <button className="cover-zoom-trigger" onClick={() => setCoverPreview(product)} aria-label={`View ${product.title} cover full screen`}><img className="customer-cover-image" src={product.coverUrl} alt={`${product.title} cover`} /><span>Click to enlarge</span></button> : <div className="book-stack"><i /><i /><strong>PDF</strong></div>}
                   <small>{(product.pdfSize / 1024 / 1024).toFixed(1)} MB digital ebook</small>
                   <div className="store-cover-glance">
                     <span>QUICK PREVIEW</span>
                     <strong>{product.title}</strong>
                     <p>{product.description}</p>
                     <b>£{product.price.toFixed(2)}</b>
-                    <button onClick={() => addToBasket(product.id)}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
+                    <div className="store-glance-actions">
+                      {product.coverUrl && <button className="view-cover-button" onClick={() => setCoverPreview(product)}>View full cover</button>}
+                      <button onClick={() => addToBasket(product.id)}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
+                    </div>
                   </div>
                 </div>
                 <div className="store-card-content">
@@ -126,6 +144,13 @@ export default function PublicShop({ products }: { products: Product[] }) {
         </div>
         <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
+      {coverPreview?.coverUrl && <div className="cover-lightbox" role="dialog" aria-modal="true" aria-labelledby="cover-lightbox-title" onMouseDown={() => setCoverPreview(null)}>
+        <figure onMouseDown={(event) => event.stopPropagation()}>
+          <button className="cover-lightbox-close" onClick={() => setCoverPreview(null)} aria-label="Close full-screen cover">×</button>
+          <img src={coverPreview.coverUrl} alt={`${coverPreview.title} ebook cover enlarged`} />
+          <figcaption><strong id="cover-lightbox-title">{coverPreview.title}</strong><span>Press Escape or click outside the cover to close</span></figcaption>
+        </figure>
+      </div>}
       <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );

@@ -12,11 +12,15 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const productId = String(body.productId ?? "");
-    const country = String(body.country ?? "GB").trim().toUpperCase();
+    const rawCountries: unknown[] = Array.isArray(body.countries) ? body.countries : [body.country ?? "GB"];
+    const countries = Array.from(new Set(rawCountries
+      .map((value: unknown) => String(value).trim().toUpperCase()).filter(Boolean)));
     const maxDailyBudgetPence = Math.round(Number(body.maxDailyBudget) * 100);
     const autoOptimize = body.autoOptimize !== false;
     if (!/^[0-9a-f-]{36}$/i.test(productId)) throw new Error("Choose a published ebook");
-    if (!/^[A-Z]{2}$/.test(country)) throw new Error("Use a valid two-letter country code");
+    if (!countries.length || countries.length > 10 || countries.some((country) => !/^[A-Z]{2}$/.test(country))) {
+      throw new Error("Choose between 1 and 10 valid target countries");
+    }
     if (!Number.isFinite(maxDailyBudgetPence) || maxDailyBudgetPence < 500 || maxDailyBudgetPence > 1000000) {
       throw new Error("Set a maximum daily budget between £5 and £10,000");
     }
@@ -36,7 +40,7 @@ export async function POST(request: Request) {
 
     const plan = await generateCampaignPlan({
       title: product.title, description: product.description, category: product.category,
-      pricePence: product.price_pence, ebookText, preferredCountry: country, maxDailyBudgetPence,
+      pricePence: product.price_pence, ebookText, preferredCountries: countries, maxDailyBudgetPence,
     });
     const firstAd = plan.adVariations[0];
     const { data: campaign, error } = await db.from("campaigns").insert({
@@ -44,6 +48,7 @@ export async function POST(request: Request) {
       name: plan.campaignName,
       objective: "OUTCOME_SALES",
       country: plan.recommendedCountry,
+      target_countries: countries,
       age_min: plan.ageMin,
       age_max: plan.ageMax,
       daily_budget_pence: plan.dailyBudgetPence,

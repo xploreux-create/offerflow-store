@@ -68,7 +68,7 @@ const campaignSchema = {
 } as const;
 
 export async function generateCampaignPlan(input: {
-  title: string; description: string; category: string; pricePence: number; ebookText: string; preferredCountry: string; maxDailyBudgetPence: number;
+  title: string; description: string; category: string; pricePence: number; ebookText: string; preferredCountries: string[]; maxDailyBudgetPence: number;
 }): Promise<AiCampaignPlan> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OpenAI is not connected. Add OPENAI_API_KEY in Vercel.");
@@ -80,7 +80,7 @@ export async function generateCampaignPlan(input: {
       model: process.env.OPENAI_MODEL || "gpt-5.6",
       input: [
         { role: "system", content: "You are a careful direct-response strategist for legitimate digital products. Analyse the supplied ebook content, do not invent claims, guarantees, reviews, or Meta interest IDs. Create exactly three clearly different ad angles. Recommend a realistic test budget no higher than the seller's ceiling. Keep all copy accurate, specific, inclusive and suitable for Meta advertising. Return only the requested structured result." },
-        { role: "user", content: `PRODUCT\nTitle: ${input.title}\nCategory: ${input.category}\nStore description: ${input.description}\nPrice: £${(input.pricePence / 100).toFixed(2)}\nPreferred market: ${input.preferredCountry}\nMaximum daily budget: £${(input.maxDailyBudgetPence / 100).toFixed(2)}\n\nEBOOK EXTRACT\n${source}` },
+        { role: "user", content: `PRODUCT\nTitle: ${input.title}\nCategory: ${input.category}\nStore description: ${input.description}\nPrice: £${(input.pricePence / 100).toFixed(2)}\nSeller-selected target markets: ${input.preferredCountries.join(", ")}\nMaximum daily budget: £${(input.maxDailyBudgetPence / 100).toFixed(2)}\n\nEBOOK EXTRACT\n${source}` },
       ],
       text: { format: { type: "json_schema", name: "vendlixa_campaign_plan", strict: true, schema: campaignSchema } },
     }),
@@ -89,5 +89,5 @@ export async function generateCampaignPlan(input: {
   if (!response.ok) throw new Error(result.error?.message || "AI campaign generation failed");
   if (!result.output_text) throw new Error("The AI response was incomplete. Please try again.");
   const plan = JSON.parse(result.output_text) as AiCampaignPlan;
-  return normalizeCampaignPlan(plan, input.preferredCountry, input.maxDailyBudgetPence);
+  return normalizeCampaignPlan(plan, input.preferredCountries[0], input.maxDailyBudgetPence);
 }

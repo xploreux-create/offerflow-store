@@ -53,3 +53,5 @@ alter table public.campaigns add column if not exists max_daily_budget_pence int
 alter table public.campaigns add column if not exists meta_ad_ids text[] not null default '{}';
 alter table public.campaigns add column if not exists optimization_log jsonb not null default '[]'::jsonb;
 alter table public.campaigns add column if not exists last_optimized_at timestamptz;
+alter table public.campaigns add column if not exists target_countries text[] not null default array['GB']::text[];
+update public.campaigns set target_countries = array[country] where target_countries = array['GB']::text[] and country <> 'GB';

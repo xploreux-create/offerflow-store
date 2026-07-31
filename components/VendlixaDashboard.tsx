@@ -29,6 +29,7 @@ type Order = {
 };
 type Campaign = {
   id: string; name: string; product_id: string; country: string; age_min: number; age_max: number;
+  target_countries: string[];
   daily_budget_pence: number; duration_days: number; primary_text: string; headline: string;
   interest_ids: string[]; status: "draft" | "ready" | "paused" | "active" | "completed";
   meta_campaign_id: string | null; created_at: string;
@@ -225,7 +226,7 @@ export default function VendlixaDashboard() {
       const form = new FormData(formElement);
       const response = await fetch("/api/admin/campaigns/generate", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...Object.fromEntries(form.entries()), autoOptimize: form.get("autoOptimize") === "on" }),
+        body: JSON.stringify({ ...Object.fromEntries(form.entries()), countries: form.getAll("countries"), autoOptimize: form.get("autoOptimize") === "on" }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "The campaign could not be saved");
@@ -354,7 +355,7 @@ export default function VendlixaDashboard() {
             <div className="campaign-metrics">
               <span><small>Daily budget</small><b>{money(campaign.daily_budget_pence)}</b></span>
               <span><small>Total limit</small><b>{money(campaign.daily_budget_pence * campaign.duration_days)}</b></span>
-              <span><small>Audience</small><b>{campaign.country} · {campaign.age_min}–{campaign.age_max}</b></span>
+              <span><small>Countries</small><b>{(campaign.target_countries?.length ? campaign.target_countries : [campaign.country]).join(" · ")}</b></span>
               <span><small>Duration</small><b>{campaign.duration_days} days</b></span>
             </div>
             {campaign.ai_analysis?.strongestOutcome && <div className="ai-strategy"><small>STRONGEST OUTCOME</small><p>{campaign.ai_analysis.strongestOutcome}</p></div>}
@@ -431,10 +432,10 @@ export default function VendlixaDashboard() {
           <button type="button" className="modal-close" onClick={() => setCampaignModal(false)} disabled={Boolean(campaignBusy)}>×</button>
           <p className="eyebrow">AI CAMPAIGN BUILDER</p><h2>Generate your complete Meta campaign</h2><p>Vendlixa will read the selected ebook and create the audience, budget and three ad variations. Nothing is sent to Meta until you review the result.</p>
           <label>Published ebook<select name="productId" required defaultValue="" autoFocus><option value="" disabled>Choose an ebook to analyse</option>{liveProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>)}</select></label>
-          <div className="upload-field-pair">
-            <label>Primary country<input name="country" defaultValue="GB" required pattern="[A-Za-z]{2}" maxLength={2} /></label>
-            <label>Maximum daily budget (£)<input name="maxDailyBudget" type="number" min="5" max="10000" step=".01" defaultValue="15" required /></label>
-          </div>
+          <fieldset className="country-selector"><legend>Target countries</legend><p>Select one or more countries where Meta should show the ads.</p><div>
+            {[{ code: "GB", name: "United Kingdom" }, { code: "US", name: "United States" }, { code: "CA", name: "Canada" }, { code: "AU", name: "Australia" }, { code: "IE", name: "Ireland" }, { code: "NZ", name: "New Zealand" }, { code: "NG", name: "Nigeria" }, { code: "GH", name: "Ghana" }, { code: "ZA", name: "South Africa" }].map((country) => <label key={country.code}><input type="checkbox" name="countries" value={country.code} defaultChecked={country.code === "GB"} /><span><strong>{country.name}</strong><small>{country.code}</small></span></label>)}
+          </div></fieldset>
+          <label>Maximum daily budget (£)<input name="maxDailyBudget" type="number" min="5" max="10000" step=".01" defaultValue="15" required /></label>
           <label className="ai-toggle"><input name="autoOptimize" type="checkbox" defaultChecked /><span><strong>Enable guarded automatic optimisation</strong><small>Pause ads that spend beyond the protected test limit without sales and increase winning budgets by no more than 15% per day, never above your maximum.</small></span></label>
           {aiProgress && <div className="ai-generation-progress"><i /><span>{aiProgress}</span></div>}
           {campaignError && <p className="upload-error">{campaignError}</p>}
