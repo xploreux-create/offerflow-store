@@ -93,8 +93,8 @@ export default function PublicShop({ products }: { products: Product[] }) {
           <div className="store-products">
             {visibleProducts.map((product) => (
               <article className="store-card" key={product.id} role="button" tabIndex={0}
-                onClick={() => setPreviewProduct(product)}
-                onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setPreviewProduct(product); } }}
+                onClick={() => { if (!window.matchMedia("(max-width: 760px)").matches) setPreviewProduct(product); }}
+                onKeyDown={(event) => { if ((event.key === "Enter" || event.key === " ") && !window.matchMedia("(max-width: 760px)").matches) { event.preventDefault(); setPreviewProduct(product); } }}
               >
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
