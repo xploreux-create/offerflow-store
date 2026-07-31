@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import pdfParse from "pdf-parse";
 import { isAdmin } from "@/lib/auth";
 import { adminDb } from "@/lib/supabase";
 import { generateCampaignPlan } from "@/lib/ai-campaigns";
@@ -34,7 +33,10 @@ export async function POST(request: Request) {
 
     const { data: pdfFile, error: downloadError } = await db.storage.from("product-files").download(product.pdf_path);
     if (downloadError || !pdfFile) throw new Error("The ebook could not be opened for analysis");
-    const parsed = await pdfParse(Buffer.from(await pdfFile.arrayBuffer()));
+    const pdfModule = await import("pdf-parse") as unknown as { PDFParse: new (options: { data: Buffer }) => { getText: () => Promise<{ text: string; total: number }>; destroy: () => Promise<void> } };
+    const parser = new pdfModule.PDFParse({ data: Buffer.from(await pdfFile.arrayBuffer()) });
+    const parsed = await parser.getText();
+    await parser.destroy();
     const ebookText = parsed.text.replace(/\s+/g, " ").trim();
     if (ebookText.length < 500) throw new Error("This PDF does not contain enough readable text for AI analysis");
 
@@ -64,7 +66,7 @@ export async function POST(request: Request) {
         idealCustomer: plan.idealCustomer,
         painPoints: plan.painPoints,
         budgetRationale: plan.budgetRationale,
-        pagesAnalysed: parsed.numpages,
+        pagesAnalysed: parsed.total,
         model: process.env.OPENAI_MODEL || "gpt-5.6",
       },
       ad_variations: plan.adVariations,
