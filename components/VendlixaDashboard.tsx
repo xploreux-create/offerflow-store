@@ -46,7 +46,7 @@ const nav: Array<{ id: Section; icon: string; label: string }> = [
 ];
 
 const categories = [
-  "UGC & Creator", "Digital Products", "Faceless Marketing", "Business",
+  "UGC & Creator", "User Experience [UX]", "Digital Products", "Faceless Marketing", "Business",
   "Finance", "Social Media", "E-commerce", "Templates & Planners",
   "AI & Productivity", "Branding", "Marketing", "Family & Education",
 ];
