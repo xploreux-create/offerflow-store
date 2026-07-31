@@ -15,6 +15,18 @@ async function metaPost(path: string, fields: Record<string, string>) {
   return result as { id: string };
 }
 
+async function resolveInterestIds(names: string[]) {
+  const token = process.env.META_ACCESS_TOKEN!;
+  const ids: string[] = [];
+  for (const name of names.slice(0, 6)) {
+    const query = new URLSearchParams({ type: "adinterest", q: name, limit: "1", access_token: token });
+    const response = await fetch(`https://graph.facebook.com/v25.0/search?${query}`);
+    const result = await response.json() as { data?: Array<{ id: string }> };
+    if (response.ok && result.data?.[0]?.id) ids.push(result.data[0].id);
+  }
+  return ids;
+}
+
 export async function POST(_: Request, context: { params: Promise<{ id: string }> }) {
   if (!await isAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await context.params;
@@ -39,7 +51,9 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
     const metaCampaign = await metaPost(`act_${account}/campaigns`, {
       name: campaign.name, objective: "OUTCOME_SALES", status: "PAUSED", special_ad_categories: "[]",
     });
-    const interests = (campaign.interest_ids ?? []).map((interestId: string) => ({ id: interestId }));
+    const recommendedNames = campaign.targeting_recommendations?.interestNames ?? [];
+    const resolvedIds = campaign.interest_ids?.length ? campaign.interest_ids : await resolveInterestIds(recommendedNames);
+    const interests = resolvedIds.map((interestId: string) => ({ id: interestId }));
     const targeting: Record<string, unknown> = {
       geo_locations: { countries: [campaign.country] },
       age_min: campaign.age_min, age_max: campaign.age_max,
@@ -53,24 +67,32 @@ export async function POST(_: Request, context: { params: Promise<{ id: string }
       promoted_object: JSON.stringify({ pixel_id: process.env.META_PIXEL_ID, custom_event_type: "PURCHASE" }),
       start_time: start.toISOString(), end_time: end.toISOString(), status: "PAUSED",
     });
-    const creative = await metaPost(`act_${account}/adcreatives`, {
-      name: `${campaign.name} creative`,
-      object_story_spec: JSON.stringify({
-        page_id: process.env.META_PAGE_ID,
-        link_data: {
-          link: destination, picture, message: campaign.primary_text, name: campaign.headline,
-          description: campaign.products.title,
-          call_to_action: { type: "SHOP_NOW", value: { link: destination } },
-        },
-      }),
-    });
-    const ad = await metaPost(`act_${account}/ads`, {
-      name: `${campaign.name} ad`, adset_id: adSet.id,
-      creative: JSON.stringify({ creative_id: creative.id }), status: "PAUSED",
-    });
+    const variations = campaign.ad_variations?.length ? campaign.ad_variations : [{ angle: "Core offer", primaryText: campaign.primary_text, headline: campaign.headline, description: campaign.products.title }];
+    const creativeIds: string[] = [];
+    const adIds: string[] = [];
+    for (const [index, variation] of variations.slice(0, 3).entries()) {
+      const creative = await metaPost(`act_${account}/adcreatives`, {
+        name: `${campaign.name} · ${variation.angle || `Variation ${index + 1}`}`,
+        object_story_spec: JSON.stringify({
+          page_id: process.env.META_PAGE_ID,
+          link_data: {
+            link: destination, picture, message: variation.primaryText, name: variation.headline,
+            description: variation.description || campaign.products.title,
+            call_to_action: { type: "SHOP_NOW", value: { link: destination } },
+          },
+        }),
+      });
+      const ad = await metaPost(`act_${account}/ads`, {
+        name: `${campaign.name} · Ad ${index + 1}`, adset_id: adSet.id,
+        creative: JSON.stringify({ creative_id: creative.id }), status: "PAUSED",
+      });
+      creativeIds.push(creative.id);
+      adIds.push(ad.id);
+    }
     await db.from("campaigns").update({
       status: "paused", meta_campaign_id: metaCampaign.id, meta_adset_id: adSet.id,
-      meta_creative_id: creative.id, meta_ad_id: ad.id, launched_at: new Date().toISOString(),
+      meta_creative_id: creativeIds[0], meta_ad_id: adIds[0], meta_ad_ids: adIds,
+      interest_ids: resolvedIds, launched_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }).eq("id", id);
     return NextResponse.json({ ok: true, status: "paused", metaCampaignId: metaCampaign.id });

@@ -31,7 +31,8 @@ Open your Supabase project, choose **SQL Editor**, paste everything from
 If you already ran an earlier store schema, run
 `supabase/production-upgrade.sql` instead. It adds the production archive
 status and database indexes without deleting existing products or orders.
-The latest upgrade also creates the `campaigns` table.
+The latest upgrade also creates the `campaigns` table and adds AI strategy,
+three-ad variation and guarded optimisation fields.
 
 In **Project Settings → API**, copy:
 
@@ -58,6 +59,9 @@ Add these Environment Variables in Vercel:
 | `META_AD_ACCOUNT_ID` | Meta ad account number (with or without `act_`) |
 | `META_PIXEL_ID` | Pixel used to optimize for purchases |
 | `META_PAGE_ID` | Facebook Page identity for the ad |
+| `OPENAI_API_KEY` | Secret OpenAI project key for ebook analysis and ad generation |
+| `OPENAI_MODEL` | `gpt-5.6` |
+| `CRON_SECRET` | A long random secret protecting daily campaign optimisation |
 
 Never put secret keys into GitHub files.
 
@@ -65,6 +69,12 @@ The Meta variables are only required when you select **Send to Meta**. Campaign
 planning and saving works without them. Vendlixa always creates Meta campaigns,
 ad sets and ads as **paused**; review the tracking, audience and creative in Meta
 Ads Manager before activating.
+
+The AI campaign builder reads the ebook, recommends an audience and test budget,
+and creates exactly three distinct ad variations. Meta launch creates all three
+ads paused. The daily optimisation job can pause ads that pass the protected
+test limit without a sale and increase proven winning budgets by 15%, never
+above the seller's selected maximum.
 
 ## 3. Configure Stripe
 

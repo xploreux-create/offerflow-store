@@ -41,3 +41,15 @@ create index if not exists campaigns_status_created_at_idx
   on public.campaigns (status, created_at desc);
 create index if not exists campaigns_product_id_idx
   on public.campaigns (product_id);
+
+-- AI campaign generation and guarded automatic optimisation.
+alter table public.campaigns add column if not exists ai_generated boolean not null default false;
+alter table public.campaigns add column if not exists ai_analysis jsonb not null default '{}'::jsonb;
+alter table public.campaigns add column if not exists ad_variations jsonb not null default '[]'::jsonb;
+alter table public.campaigns add column if not exists targeting_recommendations jsonb not null default '{}'::jsonb;
+alter table public.campaigns add column if not exists auto_optimize boolean not null default true;
+alter table public.campaigns add column if not exists target_cpa_pence integer;
+alter table public.campaigns add column if not exists max_daily_budget_pence integer;
+alter table public.campaigns add column if not exists meta_ad_ids text[] not null default '{}';
+alter table public.campaigns add column if not exists optimization_log jsonb not null default '[]'::jsonb;
+alter table public.campaigns add column if not exists last_optimized_at timestamptz;

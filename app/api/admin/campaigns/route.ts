@@ -9,7 +9,7 @@ export async function GET() {
     .select("*, products(id,title,status,cover_path)")
     .order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  return NextResponse.json({ campaigns: data, meta: metaReadiness() });
+  return NextResponse.json({ campaigns: data, meta: metaReadiness(), ai: { connected: Boolean(process.env.OPENAI_API_KEY) } });
 }
 
 export async function POST(request: Request) {
