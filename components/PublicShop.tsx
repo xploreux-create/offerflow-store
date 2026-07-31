@@ -139,7 +139,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
           </div>
         </article>
       </div>}
-      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
+      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p><p><a className="support-email" href="mailto:help@vandlixa.com">help@vandlixa.com</a></p><p className="powered-by">Copyright © {new Date().getFullYear()} <a href="https://xploreux.com" target="_blank" rel="noreferrer">Powered by xploreUX</a></p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );
 }
