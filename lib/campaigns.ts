@@ -5,6 +5,8 @@ export type CampaignInput = {
   name: string;
   productId: string;
   country: string;
+  countries: string[];
+  countryMode: "ai" | "custom";
   ageMin: number;
   ageMax: number;
   dailyBudgetPence: number;
@@ -14,10 +16,14 @@ export type CampaignInput = {
   interestIds: string[];
 };
 
+export const MARKET_CODES = ["US","GB","CA","AU","DE","NL","IE","NZ","SG","ZA","NG","GH","IN","AE","FR","ES","BR","JP","KR","IT","MX"] as const;
+
 export function validateCampaign(body: Record<string, unknown>): CampaignInput {
   const name = String(body.name ?? "").trim();
   const productId = String(body.productId ?? "").trim();
-  const country = String(body.country ?? "GB").trim().toUpperCase();
+  const countryMode = body.countryMode === "custom" ? "custom" : "ai";
+  const countries = Array.isArray(body.countries) ? body.countries.map(String).map((v) => v.toUpperCase()).filter((v) => MARKET_CODES.includes(v as never)) : [];
+  const country = (countries[0] ?? String(body.country ?? "GB").trim().toUpperCase());
   const ageMin = Number(body.ageMin);
   const ageMax = Number(body.ageMax);
   const dailyBudgetPence = Math.round(Number(body.dailyBudget) * 100);
@@ -29,7 +35,8 @@ export function validateCampaign(body: Record<string, unknown>): CampaignInput {
 
   if (!name || name.length > 120) throw new Error("Enter a campaign name (maximum 120 characters)");
   if (!/^[0-9a-f-]{36}$/i.test(productId)) throw new Error("Choose a published product");
-  if (!/^[A-Z]{2}$/.test(country)) throw new Error("Use a valid two-letter country code");
+  if (!MARKET_CODES.includes(country as never)) throw new Error("Choose a supported target market");
+  if (countryMode === "custom" && !countries.length) throw new Error("Choose at least one target market");
   if (!Number.isInteger(ageMin) || !Number.isInteger(ageMax) || ageMin < 18 || ageMax > 65 || ageMin > ageMax) {
     throw new Error("Choose an age range between 18 and 65");
   }
@@ -43,7 +50,7 @@ export function validateCampaign(body: Record<string, unknown>): CampaignInput {
   if (!headline || headline.length > 100) throw new Error("Enter an ad headline (maximum 100 characters)");
   if (interestIds.some((id) => !/^\d+$/.test(id))) throw new Error("Meta interest IDs must contain numbers only");
 
-  return { name, productId, country, ageMin, ageMax, dailyBudgetPence, durationDays, primaryText, headline, interestIds };
+  return { name, productId, country, countries: countries.length ? countries : [country], countryMode, ageMin, ageMax, dailyBudgetPence, durationDays, primaryText, headline, interestIds };
 }
 
 export function metaReadiness(product?: { cover_path: string | null }) {

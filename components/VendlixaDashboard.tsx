@@ -28,16 +28,10 @@ type Order = {
   order_items: OrderItem[];
 };
 type Campaign = {
-  id: string; name: string; product_id: string; country: string; age_min: number; age_max: number;
-  target_countries: string[];
+  id: string; name: string; product_id: string; country: string; target_countries?: string[]; age_min: number; age_max: number;
   daily_budget_pence: number; duration_days: number; primary_text: string; headline: string;
   interest_ids: string[]; status: "draft" | "ready" | "paused" | "active" | "completed";
   meta_campaign_id: string | null; created_at: string;
-  ai_generated: boolean; ai_analysis: { productSummary?: string; strongestOutcome?: string; idealCustomer?: string; budgetRationale?: string };
-  ad_variations: Array<{ angle: string; primaryText: string; headline: string; description: string }>;
-  targeting_recommendations: { interestNames?: string[]; rationale?: string; optimizationRules?: string[] };
-  auto_optimize: boolean; target_cpa_pence: number | null; max_daily_budget_pence: number | null;
-  last_optimized_at: string | null; optimization_log: Array<{ at: string; actions: unknown[] }>;
   products: { id: string; title: string; status: string; cover_path: string | null } | null;
 };
 type MetaReadiness = { connected: boolean; required: Record<string, boolean>; missing: string[] };
@@ -56,6 +50,10 @@ const categories = [
   "Finance", "Social Media", "E-commerce", "Templates & Planners",
   "AI & Productivity", "Branding", "Marketing", "Family & Education",
 ];
+const marketGroups = {
+  "Recommended markets": [["US","United States"],["GB","United Kingdom"],["CA","Canada"],["AU","Australia"],["DE","Germany"],["NL","Netherlands"],["IE","Ireland"],["NZ","New Zealand"],["SG","Singapore"],["ZA","South Africa"]],
+  "Additional markets": [["NG","Nigeria"],["GH","Ghana"],["IN","India"],["AE","UAE"],["FR","France"],["ES","Spain"],["BR","Brazil"],["JP","Japan"],["KR","South Korea"],["IT","Italy"],["MX","Mexico"]],
+};
 
 function money(pence: number, currency = "GBP") {
   return new Intl.NumberFormat("en-GB", { style: "currency", currency: currency.toUpperCase() }).format(pence / 100);
@@ -78,8 +76,6 @@ export default function VendlixaDashboard() {
   const [campaignModal, setCampaignModal] = useState(false);
   const [campaignBusy, setCampaignBusy] = useState("");
   const [campaignError, setCampaignError] = useState("");
-  const [aiConnected, setAiConnected] = useState(false);
-  const [aiProgress, setAiProgress] = useState("");
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -104,7 +100,6 @@ export default function VendlixaDashboard() {
       setOrders(orderData.orders ?? []);
       setCampaigns(campaignData.campaigns ?? []);
       setMetaReadiness(campaignData.meta ?? null);
-      setAiConnected(Boolean(campaignData.ai?.connected));
     } catch (error) {
       setLoadError(error instanceof Error ? error.message : "Your store data could not be loaded");
     } finally {
@@ -214,19 +209,14 @@ export default function VendlixaDashboard() {
     event.preventDefault();
     const formElement = event.currentTarget;
     setCampaignBusy("create");
-    setAiProgress("Opening and reading the ebook…");
     setCampaignError("");
-    const progressMessages = ["Opening and reading the ebook…", "Finding the strongest customer outcome…", "Building the audience recommendation…", "Writing three different ad angles…", "Creating optimisation safeguards…"];
-    let progressIndex = 0;
-    const progressTimer = window.setInterval(() => {
-      progressIndex = Math.min(progressIndex + 1, progressMessages.length - 1);
-      setAiProgress(progressMessages[progressIndex]);
-    }, 2600);
     try {
       const form = new FormData(formElement);
-      const response = await fetch("/api/admin/campaigns/generate", {
+      const payload = Object.fromEntries(form.entries()) as Record<string, unknown>;
+      payload.countries = form.getAll("countries");
+      const response = await fetch("/api/admin/campaigns", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...Object.fromEntries(form.entries()), countries: form.getAll("countries"), autoOptimize: form.get("autoOptimize") === "on" }),
+        body: JSON.stringify(payload),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "The campaign could not be saved");
@@ -236,7 +226,7 @@ export default function VendlixaDashboard() {
       setSection("campaigns");
     } catch (error) {
       setCampaignError(error instanceof Error ? error.message : "Campaign creation failed");
-    } finally { window.clearInterval(progressTimer); setCampaignBusy(""); setAiProgress(""); }
+    } finally { setCampaignBusy(""); }
   }
 
   async function launchCampaign(campaign: Campaign) {
@@ -332,8 +322,8 @@ export default function VendlixaDashboard() {
 
       {!loadError && section === "campaigns" && <section className="workspace-section app-view">
         <div className="section-heading compact">
-          <div><p className="eyebrow">AI META CAMPAIGNS</p><h2>Let AI turn each ebook into a tested sales campaign.</h2></div>
-          <p>Vendlixa reads the ebook, recommends an audience and budget, writes three ad variations and applies guarded optimisation after launch.</p>
+          <div><p className="eyebrow">META SALES CAMPAIGNS</p><h2>Turn a published ebook into a targeted campaign.</h2></div>
+          <p>Plan the audience, budget and ad copy here. Meta campaigns are created paused so you can review them before any spend.</p>
         </div>
         <div className="campaign-status-strip">
           <div className={metaReadiness?.connected ? "connected" : "setup"}>
@@ -341,29 +331,23 @@ export default function VendlixaDashboard() {
             <div><strong>{metaReadiness?.connected ? "Meta launch connection ready" : "Meta connection needs setup"}</strong>
               <small>{metaReadiness?.connected ? "Credentials are stored securely on the server." : `Missing: ${metaReadiness?.missing?.join(", ") || "connection variables"}`}</small></div>
           </div>
-          <button onClick={() => { setCampaignError(""); setCampaignModal(true); }} disabled={!liveProducts.length || !aiConnected}>✦ Generate with AI</button>
+          <button onClick={() => { setCampaignError(""); setCampaignModal(true); }} disabled={!liveProducts.length}>+ New campaign</button>
         </div>
-        {!aiConnected && <p className="campaign-alert">AI is not connected on this deployment. Add OPENAI_API_KEY and OPENAI_MODEL in Vercel, then redeploy.</p>}
         {campaignError && <p className="campaign-alert">{campaignError}</p>}
         {!liveProducts.length && <div className="library-panel empty-state"><strong>Publish a product first</strong><p>A campaign must lead to a product customers can buy.</p><button onClick={() => setSection("products")}>Manage products</button></div>}
-        {!!liveProducts.length && !campaigns.length && <div className="library-panel empty-state"><strong>No AI campaigns yet</strong><p>Select an ebook and let Vendlixa create the strategy, targeting and three ad variations.</p><button onClick={() => setCampaignModal(true)} disabled={!aiConnected}>Generate first campaign</button></div>}
+        {!!liveProducts.length && !campaigns.length && <div className="library-panel empty-state"><strong>No campaigns yet</strong><p>Create a campaign to define its product, audience, budget and sales message.</p><button onClick={() => setCampaignModal(true)}>Create first campaign</button></div>}
         {!!campaigns.length && <div className="campaign-grid">
           {campaigns.map((campaign) => <article className="campaign-card" key={campaign.id}>
             <div className="campaign-card-top"><i className={campaign.status}>{campaign.status}</i><small>{new Date(campaign.created_at).toLocaleDateString("en-GB")}</small></div>
-            <p>{campaign.ai_generated ? "AI GENERATED · META SALES" : "META · SALES"}</p><h3>{campaign.name}</h3>
+            <p>META · SALES</p><h3>{campaign.name}</h3>
             <strong className="campaign-product">{campaign.products?.title || "Product unavailable"}</strong>
             <div className="campaign-metrics">
               <span><small>Daily budget</small><b>{money(campaign.daily_budget_pence)}</b></span>
               <span><small>Total limit</small><b>{money(campaign.daily_budget_pence * campaign.duration_days)}</b></span>
-              <span><small>Countries</small><b>{(campaign.target_countries?.length ? campaign.target_countries : [campaign.country]).join(" · ")}</b></span>
+              <span><small>Audience</small><b>{campaign.country} · {campaign.age_min}–{campaign.age_max}</b></span>
               <span><small>Duration</small><b>{campaign.duration_days} days</b></span>
             </div>
-            {campaign.ai_analysis?.strongestOutcome && <div className="ai-strategy"><small>STRONGEST OUTCOME</small><p>{campaign.ai_analysis.strongestOutcome}</p></div>}
-            {campaign.targeting_recommendations?.interestNames?.length ? <div className="ai-targeting"><small>AI TARGETING</small><p>{campaign.targeting_recommendations.interestNames.join(" · ")}</p></div> : null}
-            <div className="ai-ad-variations">
-              {(campaign.ad_variations?.length ? campaign.ad_variations : [{ angle: "Core offer", headline: campaign.headline, primaryText: campaign.primary_text, description: "" }]).map((ad, index) => <details key={`${campaign.id}-${index}`} open={index === 0}><summary>Ad {index + 1} · {ad.angle}</summary><b>{ad.headline}</b><p>{ad.primaryText}</p></details>)}
-            </div>
-            <div className={`ai-optimizer-status ${campaign.auto_optimize ? "on" : "off"}`}><span>{campaign.auto_optimize ? "✓" : "—"}</span><div><strong>{campaign.auto_optimize ? "Automatic optimisation enabled" : "Manual optimisation"}</strong><small>{campaign.last_optimized_at ? `Last checked ${new Date(campaign.last_optimized_at).toLocaleDateString("en-GB")}` : "Checks daily after Meta activation"}</small></div></div>
+            <div className="campaign-copy"><small>AD PREVIEW</small><b>{campaign.headline}</b><p>{campaign.primary_text}</p></div>
             <div className="campaign-actions">
               {!campaign.meta_campaign_id && <button onClick={() => launchCampaign(campaign)} disabled={campaignBusy === campaign.id}>{campaignBusy === campaign.id ? "Sending…" : "Send to Meta (paused)"}</button>}
               {campaign.meta_campaign_id && <a href="https://adsmanager.facebook.com/" target="_blank" rel="noreferrer">Review in Ads Manager ↗</a>}
@@ -372,8 +356,8 @@ export default function VendlixaDashboard() {
           </article>)}
         </div>}
         <div className="campaign-safety">
-          <strong>AI campaign workflow</strong>
-          <span>1. Analyse ebook</span><span>2. Generate 3 ads</span><span>3. Send paused for approval</span><span>4. Optimise active ads within your limit</span>
+          <strong>Safe launch workflow</strong>
+          <span>1. Create draft</span><span>2. Send paused</span><span>3. Review tracking and creative in Meta</span><span>4. Activate in Ads Manager</span>
         </div>
       </section>}
 
@@ -430,16 +414,27 @@ export default function VendlixaDashboard() {
       {campaignModal && <div className="modal-backdrop" onMouseDown={() => !campaignBusy && setCampaignModal(false)}>
         <form className="modal campaign-modal" onSubmit={addCampaign} onMouseDown={(event) => event.stopPropagation()}>
           <button type="button" className="modal-close" onClick={() => setCampaignModal(false)} disabled={Boolean(campaignBusy)}>×</button>
-          <p className="eyebrow">AI CAMPAIGN BUILDER</p><h2>Generate your complete Meta campaign</h2><p>Vendlixa will read the selected ebook and create the audience, budget and three ad variations. Nothing is sent to Meta until you review the result.</p>
-          <label>Published ebook<select name="productId" required defaultValue="" autoFocus><option value="" disabled>Choose an ebook to analyse</option>{liveProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>)}</select></label>
-          <fieldset className="country-selector"><legend>Target countries</legend><p>Select one or more countries where Meta should show the ads.</p><div>
-            {[{ code: "GB", name: "United Kingdom" }, { code: "US", name: "United States" }, { code: "CA", name: "Canada" }, { code: "AU", name: "Australia" }, { code: "IE", name: "Ireland" }, { code: "NZ", name: "New Zealand" }, { code: "NG", name: "Nigeria" }, { code: "GH", name: "Ghana" }, { code: "ZA", name: "South Africa" }].map((country) => <label key={country.code}><input type="checkbox" name="countries" value={country.code} defaultChecked={country.code === "GB"} /><span><strong>{country.name}</strong><small>{country.code}</small></span></label>)}
-          </div></fieldset>
-          <label>Maximum daily budget (£)<input name="maxDailyBudget" type="number" min="5" max="10000" step=".01" defaultValue="15" required /></label>
-          <label className="ai-toggle"><input name="autoOptimize" type="checkbox" defaultChecked /><span><strong>Enable guarded automatic optimisation</strong><small>Pause ads that spend beyond the protected test limit without sales and increase winning budgets by no more than 15% per day, never above your maximum.</small></span></label>
-          {aiProgress && <div className="ai-generation-progress"><i /><span>{aiProgress}</span></div>}
+          <p className="eyebrow">NEW SALES CAMPAIGN</p><h2>Plan your Meta campaign</h2><p>The total budget shown is a planning limit. The Meta campaign will be created paused.</p>
+          <label>Campaign name<input name="name" required maxLength={120} autoFocus placeholder="UGC Toolkit launch" /></label>
+          <label>Published product<select name="productId" required defaultValue=""><option value="" disabled>Choose a product</option>{liveProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>)}</select></label>
+          <label>Targeting method<select name="countryMode" defaultValue="ai"><option value="ai">AI recommended (best markets for this ebook)</option><option value="custom">Choose countries myself</option></select><span className="field-help">AI analyses the ebook topic, audience, language and price, then selects the strongest markets.</span></label>
+          <div className="market-groups">
+            {Object.entries(marketGroups).map(([group, entries]) => <fieldset key={group}><legend>{group}</legend><div className="market-options">{entries.map(([code, label]) => <label key={code}><input type="checkbox" name="countries" value={code} />{label} ({code})</label>)}</div></fieldset>)}
+          </div>
+          <div className="upload-field-pair">
+            <label>Fallback country<input name="country" defaultValue="GB" required pattern="[A-Za-z]{2}" maxLength={2} /></label>
+            <label>Duration (days)<input name="durationDays" type="number" min="1" max="90" defaultValue="7" required /></label>
+          </div>
+          <div className="campaign-form-grid">
+            <label>Minimum age<input name="ageMin" type="number" min="18" max="65" defaultValue="18" required /></label>
+            <label>Maximum age<input name="ageMax" type="number" min="18" max="65" defaultValue="45" required /></label>
+            <label>Daily budget (£)<input name="dailyBudget" type="number" min="1" max="10000" step=".01" defaultValue="10" required /></label>
+          </div>
+          <label>Primary ad text<textarea name="primaryText" rows={4} maxLength={500} required placeholder="Explain the result your ebook helps the customer achieve." /></label>
+          <label>Headline<input name="headline" maxLength={100} required placeholder="Start landing your first UGC brand deal" /></label>
+          <label>Meta interest IDs <span className="optional">(optional, comma separated)</span><input name="interestIds" inputMode="numeric" placeholder="6003139266461, 6003384248805" /><span className="field-help">Leave blank for a broad country-and-age audience. Use numeric IDs from Meta Audience tools only.</span></label>
           {campaignError && <p className="upload-error">{campaignError}</p>}
-          <button className="button primary" disabled={Boolean(campaignBusy)}>{campaignBusy ? "AI is building your campaign…" : "✦ Analyse ebook and generate campaign"}</button>
+          <button className="button primary" disabled={Boolean(campaignBusy)}>{campaignBusy ? "Saving…" : "Save campaign draft"}</button>
         </form>
       </div>}
     </main>

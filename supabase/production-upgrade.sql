@@ -19,6 +19,8 @@ create table if not exists public.campaigns (
   name text not null check (char_length(name) between 1 and 120),
   objective text not null default 'OUTCOME_SALES',
   country text not null default 'GB' check (country ~ '^[A-Z]{2}$'),
+  target_countries text[] not null default '{GB}',
+  targeting_recommendations jsonb not null default '{}'::jsonb,
   age_min integer not null default 18 check (age_min between 18 and 65),
   age_max integer not null default 65 check (age_max between 18 and 65 and age_max >= age_min),
   daily_budget_pence integer not null check (daily_budget_pence between 100 and 1000000),
@@ -36,22 +38,11 @@ create table if not exists public.campaigns (
   updated_at timestamptz not null default now()
 );
 
+alter table public.campaigns add column if not exists target_countries text[] not null default '{GB}';
+alter table public.campaigns add column if not exists targeting_recommendations jsonb not null default '{}'::jsonb;
+
 alter table public.campaigns enable row level security;
 create index if not exists campaigns_status_created_at_idx
   on public.campaigns (status, created_at desc);
 create index if not exists campaigns_product_id_idx
   on public.campaigns (product_id);
-
--- AI campaign generation and guarded automatic optimisation.
-alter table public.campaigns add column if not exists ai_generated boolean not null default false;
-alter table public.campaigns add column if not exists ai_analysis jsonb not null default '{}'::jsonb;
-alter table public.campaigns add column if not exists ad_variations jsonb not null default '[]'::jsonb;
-alter table public.campaigns add column if not exists targeting_recommendations jsonb not null default '{}'::jsonb;
-alter table public.campaigns add column if not exists auto_optimize boolean not null default true;
-alter table public.campaigns add column if not exists target_cpa_pence integer;
-alter table public.campaigns add column if not exists max_daily_budget_pence integer;
-alter table public.campaigns add column if not exists meta_ad_ids text[] not null default '{}';
-alter table public.campaigns add column if not exists optimization_log jsonb not null default '[]'::jsonb;
-alter table public.campaigns add column if not exists last_optimized_at timestamptz;
-alter table public.campaigns add column if not exists target_countries text[] not null default array['GB']::text[];
-update public.campaigns set target_countries = array[country] where target_countries = array['GB']::text[] and country <> 'GB';
