@@ -46,9 +46,9 @@ const nav: Array<{ id: Section; icon: string; label: string }> = [
 ];
 
 const categories = [
-  "UGC & Creator", "User Experience [UX]", "Digital Products", "Faceless Marketing", "Business",
+  "UGC & Creator", "Digital Products", "Faceless Marketing", "Business",
   "Finance", "Social Media", "E-commerce", "Templates & Planners",
-  "AI & Productivity", "Branding", "Marketing", "Family & Education",
+  "AI & Productivity", "Branding", "Marketing", "User Experience [UX]", "Family & Education",
 ];
 const marketGroups = {
   "Recommended markets": [["US","United States"],["GB","United Kingdom"],["CA","Canada"],["AU","Australia"],["DE","Germany"],["NL","Netherlands"],["IE","Ireland"],["NZ","New Zealand"],["SG","Singapore"],["ZA","South Africa"]],
@@ -68,6 +68,7 @@ export default function VendlixaDashboard() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const [productModal, setProductModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [formError, setFormError] = useState("");
@@ -192,6 +193,20 @@ export default function VendlixaDashboard() {
     await loadData();
   }
 
+  async function saveProductEdits(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editingProduct) return;
+    const form = new FormData(event.currentTarget);
+    const response = await fetch("/api/admin/products", {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ id: editingProduct.id, title: form.get("title"), description: form.get("description"), category: form.get("category"), price: form.get("price") }),
+    });
+    const result = await response.json();
+    if (!response.ok) return window.alert(result.error || "The product could not be updated");
+    setEditingProduct(null);
+    await loadData();
+  }
+
   async function archiveProduct(product: Product) {
     if (!window.confirm(`Archive “${product.title}”? It will disappear from your store but past orders will remain.`)) return;
     const response = await fetch(`/api/admin/products?id=${encodeURIComponent(product.id)}`, { method: "DELETE" });
@@ -313,8 +328,8 @@ export default function VendlixaDashboard() {
               <div className="production-table-head"><span>Product</span><span>Category</span><span>Price</span><span>Status</span><span>Actions</span></div>
               {filteredProducts.map((product) => <article className="production-product-row" key={product.id}>
                 <div className="production-product-name">{product.cover_path ? <img src={`/api/products/${product.id}/cover`} alt="" /> : <span>PDF</span>}<div><strong>{product.title}</strong><small>{product.pdf_name} · {(product.pdf_size / 1024 / 1024).toFixed(1)} MB</small></div></div>
-                <span>{product.category}</span><b>{money(product.price_pence)}</b><i className={product.status}>{product.status}</i>
-                <div className="row-actions"><button onClick={() => changeStatus(product, product.status === "published" ? "draft" : "published")}>{product.status === "published" ? "Unpublish" : "Publish"}</button><button className="danger" onClick={() => archiveProduct(product)}>Archive</button></div>
+                <span className="product-category">{product.category}</span><b>{money(product.price_pence)}</b><i className={product.status}>{product.status}</i>
+                <div className="row-actions"><button onClick={() => setEditingProduct(product)}>Edit</button><button onClick={() => changeStatus(product, product.status === "published" ? "draft" : "published")}>{product.status === "published" ? "Unpublish" : "Publish"}</button><button className="danger" onClick={() => archiveProduct(product)}>Archive</button></div>
               </article>)}
             </div>}
         </div>
@@ -408,6 +423,17 @@ export default function VendlixaDashboard() {
           {uploadProgress > 0 && <div className="progress-track"><span style={{ width: `${uploadProgress}%` }} /></div>}
           {formError && <p className="upload-error">{formError}</p>}
           <button className="button primary" disabled={uploading}>{uploading ? `Uploading… ${uploadProgress}%` : "Save product"}</button>
+        </form>
+      </div>}
+
+      {editingProduct && <div className="modal-backdrop" onMouseDown={() => setEditingProduct(null)}>
+        <form className="modal add-product-modal" onSubmit={saveProductEdits} onMouseDown={(event) => event.stopPropagation()}>
+          <button type="button" className="modal-close" onClick={() => setEditingProduct(null)} aria-label="Close">×</button>
+          <p className="eyebrow">EDIT PRODUCT</p><h2>Update ebook listing</h2><p>Change the customer-facing title, description, category or price. Your private PDF stays unchanged.</p>
+          <label>Product title<input name="title" defaultValue={editingProduct.title} required maxLength={140} autoFocus /></label>
+          <label>Description<textarea name="description" defaultValue={editingProduct.description} required rows={5} maxLength={800} /></label>
+          <div className="upload-field-pair"><label>Category<select name="category" defaultValue={editingProduct.category}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (£)<input name="price" type="number" min=".50" max="9999" step=".01" defaultValue={(editingProduct.price_pence / 100).toFixed(2)} required /></label></div>
+          <button className="button primary">Save changes</button>
         </form>
       </div>}
 

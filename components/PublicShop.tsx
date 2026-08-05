@@ -12,11 +12,6 @@ type Product = {
   coverUrl: string | null;
 };
 
-function fortyWords(value: string) {
-  const words = value.trim().split(/\s+/).filter(Boolean);
-  return words.length > 40 ? `${words.slice(0, 40).join(" ")}…` : words.join(" ");
-}
-
 export default function PublicShop({ products }: { products: Product[] }) {
   const [cart, setCart] = useState<string[]>([]);
   const [search, setSearch] = useState("");
@@ -92,9 +87,9 @@ export default function PublicShop({ products }: { products: Product[] }) {
         <div className="store-layout">
           <div className="store-products">
             {visibleProducts.map((product) => (
-              <article className="store-card" key={product.id} role="button" tabIndex={0}
-                onClick={() => { if (!window.matchMedia("(max-width: 760px)").matches) setPreviewProduct(product); }}
-                onKeyDown={(event) => { if ((event.key === "Enter" || event.key === " ") && !window.matchMedia("(max-width: 760px)").matches) { event.preventDefault(); setPreviewProduct(product); } }}
+              <article className="store-card" key={product.id}
+                onMouseEnter={() => setPreviewProduct(product)}
+                onFocus={() => setPreviewProduct(product)}
               >
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
@@ -104,11 +99,11 @@ export default function PublicShop({ products }: { products: Product[] }) {
                 <div className="store-card-content">
                   <p>INSTANT DIGITAL DOWNLOAD</p>
                   <h3>{product.title}</h3>
-                  <span>{fortyWords(product.description)}</span>
+                  <span>{product.description}</span>
                   <div className="store-price"><strong>£{product.price.toFixed(2)}</strong><small>One-time payment</small></div>
                   <div className="store-card-actions">
                     <button className="details-button" disabled>Available now</button>
-                    <button className="add-button" onClick={(event) => { event.stopPropagation(); addToBasket(product.id); }}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
+                    <button className="add-button" onClick={() => addToBasket(product.id)}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
                   </div>
                 </div>
               </article>
@@ -126,7 +121,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
             <div className="checkout-trust"><span>Secure Stripe checkout</span><span>Private download links</span><span>Instant PDF access</span></div>
           </aside>
         </div>
-        <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads are available immediately after Stripe confirms your payment.</small></span><span><strong>Focused toolkits</strong><small>Clear, practical resources built around outcomes you can act on.</small></span><span><strong>Private delivery</strong><small>Download links expire after one hour for protection. Need help? Email <a href="mailto:help@vandlixa.com">help@vandlixa.com</a>.</small></span></div>
+        <div className="store-benefits" id="benefits"><span><strong>Instant access</strong><small>Secure downloads after payment</small></span><span><strong>Focused toolkits</strong><small>Clear resources built around outcomes</small></span><span><strong>Private delivery</strong><small>Download links expire for protection</small></span></div>
       </section>
       {previewProduct && <div className="store-hover-backdrop" role="dialog" aria-modal="true" aria-label={`${previewProduct.title} quick preview`} onMouseDown={() => setPreviewProduct(null)}>
         <article className="store-hover-preview" onMouseDown={(event) => event.stopPropagation()}>
@@ -137,14 +132,14 @@ export default function PublicShop({ products }: { products: Product[] }) {
           <div className="store-hover-preview-copy">
             <span>{previewProduct.category}</span>
             <h2>{previewProduct.title}</h2>
-            <p>{fortyWords(previewProduct.description)}</p>
+            <p>{previewProduct.description}</p>
             <div className="store-hover-price"><span><strong>£{previewProduct.price.toFixed(2)}</strong><small>Instant digital download</small></span>
               <button onClick={() => { addToBasket(previewProduct.id); setPreviewProduct(null); }}>{cart.includes(previewProduct.id) ? "Already in basket ✓" : "Add to basket"}</button>
             </div>
           </div>
         </article>
       </div>}
-      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p><p><a className="support-email" href="mailto:help@vandlixa.com">help@vandlixa.com</a></p><p className="powered-by">Copyright © {new Date().getFullYear()} <a href="https://xploreux.com" target="_blank" rel="noreferrer">Powered by xploreUX</a></p></div><a href="#shop">Back to shop ↑</a></footer>
+      <footer className="public-store-footer"><div><a className="public-store-brand" href="/store"><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></a><p>Practical digital resources with secure, instant delivery.</p></div><a href="#shop">Back to shop ↑</a></footer>
     </main>
   );
 }

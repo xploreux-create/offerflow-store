@@ -32,9 +32,36 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   if (!await isAdmin()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const { id, status } = await request.json();
-  if (!id || !["draft", "published"].includes(status)) return NextResponse.json({ error: "Invalid product update" }, { status: 400 });
-  const { error } = await adminDb().from("products").update({ status, updated_at: new Date().toISOString() }).eq("id", id);
+  const body = await request.json();
+  const id = String(body.id ?? "");
+  if (!id) return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (body.status !== undefined) {
+    if (!["draft", "published"].includes(body.status)) return NextResponse.json({ error: "Invalid product status" }, { status: 400 });
+    update.status = body.status;
+  }
+  if (body.title !== undefined) {
+    const title = String(body.title).trim();
+    if (!title || title.length > 140) return NextResponse.json({ error: "Enter a valid product title" }, { status: 400 });
+    update.title = title;
+  }
+  if (body.description !== undefined) {
+    const description = String(body.description).trim();
+    if (!description || description.length > 800) return NextResponse.json({ error: "Enter a valid product description" }, { status: 400 });
+    update.description = description;
+  }
+  if (body.category !== undefined) {
+    const category = String(body.category).trim();
+    if (!category || category.length > 80) return NextResponse.json({ error: "Choose a valid category" }, { status: 400 });
+    update.category = category;
+  }
+  if (body.price !== undefined) {
+    const pricePence = Math.round(Number(body.price) * 100);
+    if (!Number.isFinite(pricePence) || pricePence < 50 || pricePence > 999900) return NextResponse.json({ error: "Enter a price between £0.50 and £9,999" }, { status: 400 });
+    update.price_pence = pricePence;
+  }
+  if (Object.keys(update).length === 1) return NextResponse.json({ error: "No product changes supplied" }, { status: 400 });
+  const { error } = await adminDb().from("products").update(update).eq("id", id);
   return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ ok: true });
 }
 
