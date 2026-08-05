@@ -60,21 +60,8 @@ export async function PATCH(request: Request) {
     if (!Number.isFinite(pricePence) || pricePence < 50 || pricePence > 999900) return NextResponse.json({ error: "Enter a price between £0.50 and £9,999" }, { status: 400 });
     update.price_pence = pricePence;
   }
-  if (body.pdfPath !== undefined) {
-    if (!body.pdfPath || !body.pdfName || !Number.isFinite(Number(body.pdfSize)) || Number(body.pdfSize) <= 0 || Number(body.pdfSize) > 209715200) return NextResponse.json({ error: "A valid PDF is required" }, { status: 400 });
-    update.pdf_path = String(body.pdfPath);
-    update.pdf_name = String(body.pdfName).slice(0, 255);
-    update.pdf_size = Number(body.pdfSize);
-  }
-  if (body.coverPath !== undefined) update.cover_path = body.coverPath || null;
   if (Object.keys(update).length === 1) return NextResponse.json({ error: "No product changes supplied" }, { status: 400 });
-  const db = adminDb();
-  const { data: current } = await db.from("products").select("pdf_path,cover_path").eq("id", id).single();
-  const { error } = await db.from("products").update(update).eq("id", id);
-  if (!error && current) {
-    if (body.pdfPath && current.pdf_path && current.pdf_path !== body.pdfPath) await db.storage.from("product-files").remove([current.pdf_path]);
-    if (body.coverPath !== undefined && current.cover_path && current.cover_path !== body.coverPath) await db.storage.from("product-covers").remove([current.cover_path]);
-  }
+  const { error } = await adminDb().from("products").update(update).eq("id", id);
   return error ? NextResponse.json({ error: error.message }, { status: 400 }) : NextResponse.json({ ok: true });
 }
 
