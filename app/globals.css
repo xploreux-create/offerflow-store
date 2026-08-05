@@ -196,7 +196,7 @@ h1 { margin: 0; max-width: 610px; font-size: clamp(48px, 4.5vw, 68px); line-heig
 .store-card-actions button { min-height: 42px; border-radius: 9px; font-size: 10px; font-weight: 900; cursor: pointer; }
 .details-button { border: 1px solid var(--plum); background: white; }
 .add-button { border: 1px solid var(--plum); background: var(--plum); color: white; }
-.basket-panel { padding: 25px; border: 1px solid var(--border); border-radius: 20px; background: white; box-shadow: 0 12px 28px rgba(50,21,63,.07); position: sticky; top: 24px; }
+.basket-panel { padding: 25px; border: 1px solid var(--border); border-radius: 20px; background: white; box-shadow: 0 12px 28px rgba(50,21,63,.07); position: sticky; top: 98px; z-index: 5; }
 .basket-heading { display: flex; justify-content: space-between; align-items: center; }
 .basket-heading .eyebrow { margin-bottom: 2px; font-size: 8px; }
 .basket-heading h3 { margin: 0; font-size: 26px; }
