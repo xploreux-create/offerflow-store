@@ -88,8 +88,11 @@ export default function PublicShop({ products }: { products: Product[] }) {
           <div className="store-products">
             {visibleProducts.map((product) => (
               <article className="store-card" key={product.id}
-                onMouseEnter={() => setPreviewProduct(product)}
-                onFocus={() => setPreviewProduct(product)}
+                onClick={() => { if (window.matchMedia("(min-width: 761px)").matches) setPreviewProduct(product); }}
+                onKeyDown={(event) => { if ((event.key === "Enter" || event.key === " ") && window.matchMedia("(min-width: 761px)").matches) { event.preventDefault(); setPreviewProduct(product); } }}
+                tabIndex={0}
+                role="button"
+                aria-label={`View ${product.title}`}
               >
                 <div className="store-cover">
                   <span className="cover-badge">{product.category}</span>
@@ -103,7 +106,7 @@ export default function PublicShop({ products }: { products: Product[] }) {
                   <div className="store-price"><strong>£{product.price.toFixed(2)}</strong><small>One-time payment</small></div>
                   <div className="store-card-actions">
                     <button className="details-button" disabled>Available now</button>
-                    <button className="add-button" onClick={() => addToBasket(product.id)}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
+                    <button className="add-button" onClick={(event) => { event.stopPropagation(); addToBasket(product.id); }}>{cart.includes(product.id) ? "Added ✓" : "Add to basket"}</button>
                   </div>
                 </div>
               </article>

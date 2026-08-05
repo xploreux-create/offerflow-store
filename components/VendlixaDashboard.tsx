@@ -197,14 +197,30 @@ export default function VendlixaDashboard() {
     event.preventDefault();
     if (!editingProduct) return;
     const form = new FormData(event.currentTarget);
+    const pdf = form.get("pdf") as File;
+    const cover = form.get("cover") as File;
+    setUploading(true); setFormError("");
+    try {
+      let pdfPath: string | undefined;
+      let coverPath: string | undefined;
+      if (pdf?.size) {
+        if (pdf.type !== "application/pdf" || pdf.size > 200 * 1024 * 1024) throw new Error("Choose a valid PDF up to 200 MB");
+        pdfPath = await createUpload(pdf, "pdf");
+      }
+      if (cover?.size) {
+        if (!["image/jpeg", "image/png", "image/webp"].includes(cover.type) || cover.size > 10 * 1024 * 1024) throw new Error("Choose a JPG, PNG or WebP cover up to 10 MB");
+        coverPath = await createUpload(cover, "cover");
+      }
     const response = await fetch("/api/admin/products", {
       method: "PATCH", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ id: editingProduct.id, title: form.get("title"), description: form.get("description"), category: form.get("category"), price: form.get("price") }),
+      body: JSON.stringify({ id: editingProduct.id, title: form.get("title"), description: form.get("description"), category: form.get("category"), price: form.get("price"), ...(pdfPath ? { pdfPath, pdfName: pdf.name, pdfSize: pdf.size } : {}), ...(coverPath ? { coverPath } : {}) }),
     });
     const result = await response.json();
     if (!response.ok) return window.alert(result.error || "The product could not be updated");
     setEditingProduct(null);
     await loadData();
+    } catch (error) { setFormError(error instanceof Error ? error.message : "The product could not be updated"); }
+    finally { setUploading(false); }
   }
 
   async function archiveProduct(product: Product) {
@@ -271,7 +287,6 @@ export default function VendlixaDashboard() {
 
   return (
     <main>
-      <div className="page-glow" aria-hidden="true" />
       <header className="app-sidebar">
         <button className="brand brand-lockup" onClick={() => setSection("overview")}><img src="/brand/vendlixa-mark.png" alt="" /><span>Vendlixa</span></button>
         <nav aria-label="Seller navigation">
@@ -433,7 +448,8 @@ export default function VendlixaDashboard() {
           <label>Product title<input name="title" defaultValue={editingProduct.title} required maxLength={140} autoFocus /></label>
           <label>Description<textarea name="description" defaultValue={editingProduct.description} required rows={5} maxLength={800} /></label>
           <div className="upload-field-pair"><label>Category<select name="category" defaultValue={editingProduct.category}>{categories.map((category) => <option key={category}>{category}</option>)}</select></label><label>Price (£)<input name="price" type="number" min=".50" max="9999" step=".01" defaultValue={(editingProduct.price_pence / 100).toFixed(2)} required /></label></div>
-          <button className="button primary">Save changes</button>
+          <div className="upload-field-pair"><label className="file-field">Replace PDF<input name="pdf" type="file" accept="application/pdf" /><span>Optional · maximum 200 MB</span></label><label className="file-field">Replace cover image<input name="cover" type="file" accept="image/jpeg,image/png,image/webp" /><span>Optional · maximum 10 MB</span></label></div>
+          {formError && <p className="upload-error">{formError}</p>}<button className="button primary" disabled={uploading}>{uploading ? "Saving securely…" : "Save changes"}</button>
         </form>
       </div>}
 
